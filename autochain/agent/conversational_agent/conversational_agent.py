@@ -120,7 +120,7 @@ class ConversationalAgent(BaseAgent):
         """Create the planning inputs for the LLMChain from intermediate steps."""
         thoughts = _construct_scratchpad(intermediate_steps)
         new_inputs = {"agent_scratchpad": thoughts}
-        full_inputs = {**kwargs, **new_inputs}
+        full_inputs = kwargs | new_inputs
         prompt = template.format_prompt(**full_inputs)
         return prompt
 
@@ -215,27 +215,26 @@ class ConversationalAgent(BaseAgent):
         print_with_color("Deciding if need clarification", Fore.LIGHTYELLOW_EX)
         if not self.allowed_tools.get(agent_action.tool):
             return agent_action
-        else:
-            inputs = {
-                "tool_name": agent_action.tool,
-                "tool_desp": self.allowed_tools.get(agent_action.tool).description,
-                "history": history.format_message(),
-                **kwargs,
-            }
+        inputs = {
+            "tool_name": agent_action.tool,
+            "tool_desp": self.allowed_tools.get(agent_action.tool).description,
+            "history": history.format_message(),
+            **kwargs,
+        }
 
-            clarifying_template = self.get_prompt_template(
-                template=CLARIFYING_QUESTION_PROMPT_TEMPLATE
-            )
+        clarifying_template = self.get_prompt_template(
+            template=CLARIFYING_QUESTION_PROMPT_TEMPLATE
+        )
 
-            final_prompt = self.format_prompt(
-                clarifying_template, intermediate_steps, **inputs
-            )
-            logger.info(f"\nClarification inputs: {final_prompt[0].content}")
-            full_output: Generation = self.llm.generate(final_prompt).generations[0]
-            print(f"Clarification outputs: {repr(full_output.message.content)}")
-            return self.output_parser.parse_clarification(
-                full_output.message, agent_action=agent_action
-            )
+        final_prompt = self.format_prompt(
+            clarifying_template, intermediate_steps, **inputs
+        )
+        logger.info(f"\nClarification inputs: {final_prompt[0].content}")
+        full_output: Generation = self.llm.generate(final_prompt).generations[0]
+        print(f"Clarification outputs: {repr(full_output.message.content)}")
+        return self.output_parser.parse_clarification(
+            full_output.message, agent_action=agent_action
+        )
 
     def fix_action_input(
         self, tool: Tool, action: AgentAction, error: str
@@ -251,5 +250,4 @@ class ConversationalAgent(BaseAgent):
         new_tool_inputs = self.output_parser.load_json_output(output.message)
 
         logger.info(f"\nFixed tool output: {new_tool_inputs}")
-        new_action = AgentAction(tool=action.tool, tool_input=new_tool_inputs)
-        return new_action
+        return AgentAction(tool=action.tool, tool_input=new_tool_inputs)

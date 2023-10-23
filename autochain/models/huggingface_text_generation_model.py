@@ -97,10 +97,7 @@ class HuggingFaceTextGenerationModel(BaseLanguageModel):
 
     @staticmethod
     def _construct_prompt_from_message(messages: List[BaseMessage]):
-        prompt = ""
-        for msg in messages:
-            prompt += msg.content
-        return prompt
+        return "".join(msg.content for msg in messages)
 
     @staticmethod
     def _enforce_stop_tokens(text: str, stop: List[str]) -> str:

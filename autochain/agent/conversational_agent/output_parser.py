@@ -20,8 +20,7 @@ class ConvoJSONOutputParser(AgentOutputParser):
             "no" in response.get("thoughts", {}).get("need_use_tool").lower().strip()
             or not action_name
         ):
-            output_message = response.get("response")
-            if output_message:
+            if output_message := response.get("response"):
                 return AgentFinish(message=response.get("response"), log=output_message)
             else:
                 return AgentFinish(

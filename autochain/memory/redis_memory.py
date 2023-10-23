@@ -33,21 +33,19 @@ class RedisMemory(BaseMemory):
     ) -> Any:
         """Get the key's corresponding value from redis."""
         if not key.startswith(self.redis_key_prefix):
-            key = self.redis_key_prefix + f":{key}"
+            key = f"{self.redis_key_prefix}:{key}"
         pickled = self.redis_client.get(key)
-        if not pickled:
-            return default
-        return pickle.loads(pickled)
+        return default if not pickled else pickle.loads(pickled)
 
     def load_conversation(self, **kwargs: Dict[str, Any]) -> ChatMessageHistory:
         """Return chat message history."""
-        redis_key = self.redis_key_prefix + f":{ChatMessageHistory.__name__}"
+        redis_key = f"{self.redis_key_prefix}:{ChatMessageHistory.__name__}"
         return ChatMessageHistory(messages=self.load_memory(redis_key, []))
 
     def save_memory(self, key: str, value: Any) -> None:
         """Save the key value pair to redis."""
         if not key.startswith(self.redis_key_prefix):
-            key = self.redis_key_prefix + f":{key}"
+            key = f"{self.redis_key_prefix}:{key}"
         pickled = pickle.dumps(value)
         self.redis_client.set(key, pickled, ex=self.expire_time)
 
@@ -55,9 +53,8 @@ class RedisMemory(BaseMemory):
         self, message: str, message_type: MessageType, **kwargs
     ) -> None:
         """Save context from this conversation to redis."""
-        redis_key = self.redis_key_prefix + f":{ChatMessageHistory.__name__}"
-        pickled = self.redis_client.get(redis_key)
-        if pickled:
+        redis_key = f"{self.redis_key_prefix}:{ChatMessageHistory.__name__}"
+        if pickled := self.redis_client.get(redis_key):
             messages: list[BaseMessage] = pickle.loads(pickled)
         else:
             messages = []

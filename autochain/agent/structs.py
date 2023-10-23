@@ -47,11 +47,10 @@ class AgentFinish(BaseModel):
     intermediate_steps: List[AgentAction] = []
 
     def format_output(self) -> Dict[str, Any]:
-        final_output = {
+        return {
             "message": self.message,
             constants.INTERMEDIATE_STEPS: self.intermediate_steps,
         }
-        return final_output
 
 
 class AgentOutputParser(BaseModel):

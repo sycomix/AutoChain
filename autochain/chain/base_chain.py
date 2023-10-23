@@ -67,10 +67,7 @@ class BaseChain(BaseModel, ABC):
                 key=constants.INTERMEDIATE_STEPS, value=output.intermediate_steps
             )
 
-        if return_only_outputs:
-            return output_dict
-        else:
-            return {**inputs, **output_dict}
+        return output_dict if return_only_outputs else {**inputs, **output_dict}
 
     def run(
         self,
@@ -148,13 +145,11 @@ class BaseChain(BaseModel, ABC):
             iterations += 1
             time_elapsed = time.time() - start_time
 
-        # force the termination when shouldn't continue
-        output = AgentFinish(
+        return AgentFinish(
             message="Agent stopped due to iteration limit or time limit.",
             log="",
             intermediate_steps=intermediate_steps,
         )
-        return output
 
     @abstractmethod
     def take_next_step(
@@ -168,13 +163,10 @@ class BaseChain(BaseModel, ABC):
     def _should_continue(self, iterations: int, time_elapsed: float) -> bool:
         if self.max_iterations is not None and iterations >= self.max_iterations:
             return False
-        if (
-            self.max_execution_time is not None
-            and time_elapsed >= self.max_execution_time
-        ):
-            return False
-
-        return True
+        return (
+            self.max_execution_time is None
+            or time_elapsed < self.max_execution_time
+        )
 
     def should_answer(self, inputs) -> Optional[AgentFinish]:
         """

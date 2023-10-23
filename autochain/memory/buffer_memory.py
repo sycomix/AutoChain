@@ -14,10 +14,7 @@ class BufferMemory(BaseMemory):
         self, key: Optional[str] = None, default: Optional[Any] = None, **kwargs
     ) -> Any:
         """Return history buffer by key or all memories."""
-        if not key:
-            return self.kv_memory
-
-        return self.kv_memory.get(key, default)
+        return self.kv_memory if not key else self.kv_memory.get(key, default)
 
     def load_conversation(self, **kwargs) -> ChatMessageHistory:
         """Return history buffer and format it into a conversational string format."""

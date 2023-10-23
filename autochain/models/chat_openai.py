@@ -75,10 +75,7 @@ def convert_tool_to_dict(tool: Tool):
             cls_name = cls[0].split(".")[-1]
             return primary_type_map.get(cls_name, cls_name)
 
-        if issubclass(t, enum.Enum):
-            return "enum"
-
-        return str(t)
+        return "enum" if issubclass(t, enum.Enum) else str(t)
 
     def _format_property(t: type, arg_desp: str):
         p = {"type": _type_to_string(t)}
@@ -216,9 +213,7 @@ class ChatOpenAI(BaseLanguageModel):
                 raise ValueError("`stop` found in both the input and default params.")
             params["stop"] = stop
         message_dicts = [convert_message_to_dict(m) for m in messages]
-        function_dicts = []
-        if tools:
-            function_dicts = [convert_tool_to_dict(t) for t in tools]
+        function_dicts = [convert_tool_to_dict(t) for t in tools] if tools else []
         return message_dicts, function_dicts, params
 
     def _create_llm_result(self, response: Mapping[str, Any]) -> LLMResult:
@@ -228,5 +223,4 @@ class ChatOpenAI(BaseLanguageModel):
             gen = Generation(message=message)
             generations.append(gen)
         llm_output = {"token_usage": response["usage"], "model_name": self.model_name}
-        result = LLMResult(generations=generations, llm_output=llm_output)
-        return result
+        return LLMResult(generations=generations, llm_output=llm_output)

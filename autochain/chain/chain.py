@@ -24,21 +24,20 @@ class Chain(BaseChain):
     graceful_exit_tool: Tool = HandOffToAgent()
 
     def handle_repeated_action(self, agent_action: AgentAction) -> AgentFinish:
-        if agent_action.model_response:
-            print(
-                f"Action taken before: {agent_action.tool}, "
-                f"input: {agent_action.tool_input}"
-            )
-            return AgentFinish(
-                message=agent_action.response,
-                log=f"Action taken before: {agent_action.tool}, "
-                f"input: {agent_action.tool_input}",
-            )
-        else:
+        if not agent_action.model_response:
             return AgentFinish(
                 message=self.graceful_exit_tool.run(),
-                log=f"Gracefully exit due to repeated action",
+                log="Gracefully exit due to repeated action",
             )
+        print(
+            f"Action taken before: {agent_action.tool}, "
+            f"input: {agent_action.tool_input}"
+        )
+        return AgentFinish(
+            message=agent_action.response,
+            log=f"Action taken before: {agent_action.tool}, "
+            f"input: {agent_action.tool_input}",
+        )
 
     def take_next_step(
         self,
@@ -77,38 +76,37 @@ class Chain(BaseChain):
         if isinstance(output, AgentFinish):
             return output
 
-        if isinstance(output, AgentAction):
-            tool_output = ""
-            # Check if tool is supported
-            if output.tool in name_to_tool_map:
-                tool = name_to_tool_map[output.tool]
-
-                # how to handle the case where same action with same input is taken before
-                if output.tool_input == self.memory.load_memory(tool.name):
-                    return self.handle_repeated_action(output)
-
-                self.memory.save_memory(tool.name, output.tool_input)
-                # We then call the tool on the tool input to get an tool_output
-                try:
-                    tool_output = tool.run(output.tool_input)
-                except ToolRunningError as e:
-                    new_agent_action = self.agent.fix_action_input(
-                        tool, output, error=str(e)
-                    )
-                    if (
-                        new_agent_action
-                        and new_agent_action.tool_input != output.tool_input
-                    ):
-                        tool_output = tool.run(output.tool_input)
-
-                print(
-                    f"Took action '{tool.name}' with inputs '{output.tool_input}', "
-                    f"and the tool_output is {tool_output}"
-                )
-            else:
-                tool_output = f"Tool {output.tool} if not supported"
-
-            output.tool_output = tool_output
-            return output
-        else:
+        if not isinstance(output, AgentAction):
             raise ValueError(f"Unsupported action: {type(output)}")
+        tool_output = ""
+        # Check if tool is supported
+        if output.tool in name_to_tool_map:
+            tool = name_to_tool_map[output.tool]
+
+            # how to handle the case where same action with same input is taken before
+            if output.tool_input == self.memory.load_memory(tool.name):
+                return self.handle_repeated_action(output)
+
+            self.memory.save_memory(tool.name, output.tool_input)
+            # We then call the tool on the tool input to get an tool_output
+            try:
+                tool_output = tool.run(output.tool_input)
+            except ToolRunningError as e:
+                new_agent_action = self.agent.fix_action_input(
+                    tool, output, error=str(e)
+                )
+                if (
+                    new_agent_action
+                    and new_agent_action.tool_input != output.tool_input
+                ):
+                    tool_output = tool.run(output.tool_input)
+
+            print(
+                f"Took action '{tool.name}' with inputs '{output.tool_input}', "
+                f"and the tool_output is {tool_output}"
+            )
+        else:
+            tool_output = f"Tool {output.tool} if not supported"
+
+        output.tool_output = tool_output
+        return output

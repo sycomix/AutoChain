@@ -81,20 +81,20 @@ class ChatMessageHistory(BaseModel):
             self.messages.append(SystemMessage(content=message))
 
     def format_message(self):
+        if len(self.messages) <= 0:
+            return ""
         string_messages = []
-        if len(self.messages) > 0:
-            for m in self.messages:
-                if isinstance(m, UserMessage):
-                    role = "User"
-                elif isinstance(m, AIMessage):
-                    role = "Assistant"
-                elif isinstance(m, SystemMessage):
-                    role = "System"
-                else:
-                    continue
-                string_messages.append(f"{role}: {m.content}")
-            return "\n".join(string_messages) + "\n"
-        return ""
+        for m in self.messages:
+            if isinstance(m, UserMessage):
+                role = "User"
+            elif isinstance(m, AIMessage):
+                role = "Assistant"
+            elif isinstance(m, SystemMessage):
+                role = "System"
+            else:
+                continue
+            string_messages.append(f"{role}: {m.content}")
+        return "\n".join(string_messages) + "\n"
 
     def get_latest_user_message(self) -> UserMessage:
         for message in reversed(self.messages):

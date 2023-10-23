@@ -58,12 +58,11 @@ class WorkflowTester:
         max_turn = 8
         response = {}
         while not conversation_end and len(conversation_history) < max_turn:
-            if not conversation_end:
-                user_query = self.get_next_user_query(
-                    conversation_history, test_case.user_context
-                )
-                conversation_history.append(("user", user_query))
-                print_with_color(f">> User: {user_query}", Fore.GREEN)
+            user_query = self.get_next_user_query(
+                conversation_history, test_case.user_context
+            )
+            conversation_history.append(("user", user_query))
+            print_with_color(f">> User: {user_query}", Fore.GREEN)
 
             response: Dict[str, Any] = self.chain.run(user_query)
 
@@ -81,7 +80,7 @@ class WorkflowTester:
     def run_test(self, test):
         test_results = []
         self.chain = test.chain
-        for i, test_case in enumerate(test.test_cases):
+        for test_case in test.test_cases:
             print(
                 f"========== Start running test case: {test_case.test_name} ==========\n"
             )
@@ -141,25 +140,19 @@ Has assistant finish assisting the user? Answer with yes or no"""
         ]
         output: Generation = self.llm.generate(messages=messages).generations[0]
 
-        if "yes" in output.message.content.lower():
-            # finish assisting; conversation should end
-            return True
-        else:
-            # not yet finished; conversation should continue
-            return False
+        return "yes" in output.message.content.lower()
 
     def get_next_user_query(
         self, conversation_history: List[Tuple[str, str]], user_context: str
     ) -> str:
-        messages = []
-        conversation = ""
-
-        for user_type, utterance in conversation_history:
-            conversation += f"{user_type}: {utterance}\n"
-
-        conversation += "user: "
-
-        messages.append(
+        conversation = (
+            "".join(
+                f"{user_type}: {utterance}\n"
+                for user_type, utterance in conversation_history
+            )
+            + "user: "
+        )
+        messages = [
             UserMessage(
                 content=f"""You are a user with access to the following context information about yourself. 
 Based on previous conversation, write the message to assistant to help you with goal described 
@@ -172,8 +165,7 @@ Context:
 Previous conversation:
 {conversation}"""
             )
-        )
-
+        ]
         output: Generation = self.llm.generate(
             messages=messages, stop=[".", "?"]
         ).generations[0]
@@ -182,12 +174,11 @@ Previous conversation:
     def determine_if_agent_solved_problem(
         self, conversation_history: List[Tuple[str, str]], expected_outcome: str
     ) -> Dict[str, str]:
-        messages = []
-        conversation = ""
-        for user_type, utterance in conversation_history:
-            conversation += f"{user_type}: {utterance}\n"
-
-        messages.append(
+        conversation = "".join(
+            f"{user_type}: {utterance}\n"
+            for user_type, utterance in conversation_history
+        )
+        messages = [
             UserMessage(
                 content=f"""You are an admin for assistant and check if assistant meets the expected outcome based on previous conversation.
  
@@ -201,7 +192,6 @@ Does conversation reach the expected outcome for user? answer in JSON format
     "rating": "rating from 1 to 5; 1 for not meeting the expected outcome at all, 5 for completely meeting the expected outcome",
 }}"""
             )
-        )
-
+        ]
         output: Generation = self.llm.generate(messages=messages).generations[0]
         return parse_evaluation_response(output.message)

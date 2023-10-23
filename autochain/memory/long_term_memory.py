@@ -50,7 +50,7 @@ class LongTermMemory(BaseMemory):
         if (
             isinstance(value, list)
             and len(value) > 0
-            and (isinstance(value[0], ChromaDoc) or isinstance(value[0], PineconeDoc))
+            and (isinstance(value[0], (ChromaDoc, PineconeDoc)))
         ):
             self.long_term_memory.add_docs(docs=value)
         elif key:

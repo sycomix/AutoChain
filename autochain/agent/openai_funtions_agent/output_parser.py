@@ -7,14 +7,13 @@ from autochain.agent.structs import AgentAction, AgentFinish, AgentOutputParser
 
 class OpenAIFunctionOutputParser(AgentOutputParser):
     def parse(self, message: AIMessage) -> Union[AgentAction, AgentFinish]:
-        if message.function_call:
-            action_name = message.function_call["name"]
-            action_args = json.loads(message.function_call["arguments"])
-
-            return AgentAction(
-                tool=action_name,
-                tool_input=action_args,
-                model_response=message.content,
-            )
-        else:
+        if not message.function_call:
             return AgentFinish(message=message.content, log=message.content)
+        action_name = message.function_call["name"]
+        action_args = json.loads(message.function_call["arguments"])
+
+        return AgentAction(
+            tool=action_name,
+            tool_input=action_args,
+            model_response=message.content,
+        )
